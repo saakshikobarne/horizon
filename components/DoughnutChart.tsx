@@ -29,7 +29,7 @@ const DoughnutChart = ({accounts}: DoughnutChartProps) => {
                 }
             }
         }}
-    />
+    /> 
   )
 }
 
