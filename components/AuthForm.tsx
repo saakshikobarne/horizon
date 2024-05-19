@@ -18,27 +18,53 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import CustomInput from '../CustomInput';
+import CustomInput from './CustomInput';
 import { authFormSchema } from '@/lib/utils';
 
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { signIn, signUp } from '@/lib/actions/user.actions';
 
 const AuthForm = ({type}:{type: string}) => {
+
+    const router= useRouter();
 
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading]= useState(false);
 
-    const form = useForm<z.infer<typeof authFormSchema>>({
-        resolver: zodResolver(authFormSchema),
+    const formSchema = authFormSchema(type);
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
         defaultValues: {
             email: "",
+            password: ''
         },
     })
      
-    function onSubmit(values: z.infer<typeof authFormSchema>) {
+    const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsLoading(true);
-        console.log(values);
-        setIsLoading(false);
+
+        try{
+            //sign up with appwrite and create plain link token
+
+            if(type==='sign-up'){
+                    const newUser= await signUp(data);
+                    setUser(newUser);
+            }else if(type==='sign-in'){
+                const response = await signIn({
+                    email: data.email,
+                    passowrd: data.password
+                })
+
+                if(response) router.push('/')
+            }
+
+        } catch(error){
+            console.log(error);
+        }finally{
+            setIsLoading(false);
+        }
     }
 
   return (
@@ -54,10 +80,9 @@ const AuthForm = ({type}:{type: string}) => {
                     <h1 className='text-26 font-ibm-plex-serif font-bold text-black-1'>Horizon</h1>
                 </Link>
 
-
                 <div className='flex flex-col gap-1 md:gap-3'>
                     <h1 className='text-24 lg:text-36 font-semibold text-gray-900'>
-                        {user? 'Link Account': type=== 'sign-in'? 'Sign In': 'Sign Up'}
+                        {user? 'Link Account': type === 'sign-in'? 'Sign In': 'Sign Up'}
 
                         <p className='text-16 font-normal text-gray-600'>
                             {user? 'Link your account to get started' : 'Please enter your details'}
@@ -75,8 +100,31 @@ const AuthForm = ({type}:{type: string}) => {
             <>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                        <CustomInput control={form.control} name='email' label='Email' placeholder='enter your email'/>
 
+                        {type === 'sign-up' && (
+                            <>
+                                <div className='flex gap-4'>
+                                    <CustomInput control={form.control} name='firstName' label='First Name' placeholder='enter your first name'/>
+                                    <CustomInput control={form.control} name='lastName' label='Last Name' placeholder='enter your last name'/>
+                                </div>
+
+                                <CustomInput control={form.control} name='address1' label='Address' placeholder='enter your address'/>
+
+                                <CustomInput control={form.control} name='city' label='City' placeholder='enter your city'/>
+
+                                <div className='flex gap-4'>
+                                    <CustomInput control={form.control} name='state' label='State' placeholder='Example: MH'/>
+                                    <CustomInput control={form.control} name='pinCode' label='Pin Code' placeholder='Enter pin code'/>
+                                </div>
+
+                                <div className='flex gap-4'>
+                                    <CustomInput control={form.control} name='dateOfBirth' label='Date of Birth' placeholder='YYYY-MM-DD'/>
+                                    <CustomInput control={form.control} name='ssn' label='SSN' placeholder='Example: 1234'/>
+                                </div>
+                            </>
+                        )}
+
+                        <CustomInput control={form.control} name='email' label='Email' placeholder='enter your email'/>
                         <CustomInput control={form.control} name='password' label='Password' placeholder='enter your password'/>
 
                         <div className='flex flex-col gap-4'>
@@ -96,7 +144,7 @@ const AuthForm = ({type}:{type: string}) => {
                     <p className='text-14 font-normal text-gray-600'>
                         {type === 'sign-in'? "Don't have an account?" : "Already have an account?"}
                     </p>
-                    <Link href={type=== 'sign-in' ? '/sign-up': 'sign-in'} className='form-link'>
+                    <Link href={type=== 'sign-in' ? '/sign-up': '/sign-in'} className='form-link'>
                         {type=== 'sign-in' ? 'Sign Up': 'Sign In'}
                     </Link>
                 </footer>
